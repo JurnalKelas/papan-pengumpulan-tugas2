@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PadletKu - Papan Tulis Kolaboratif Kelas</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse-slow { animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 px-4 lg:px-8 py-3 flex flex-col sm:flex-row items-center justify-between shadow-sm gap-3">
+        <div class="flex items-center space-x-3 w-full sm:w-auto">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center flex-shrink-0">
+                <i class="fa-solid fa-layer-group text-lg"></i>
+            </div>
+            <div class="truncate">
+                <div class="flex items-center space-x-2">
+                    <h1 id="boardTitleDisplay" class="font-bold text-base lg:text-lg text-slate-900 tracking-tight truncate">Memuat Kelas...</h1>
+                    <button onclick="openEditBoardModal()" class="text-slate-400 hover:text-indigo-600 transition flex-shrink-0" title="Edit Papan">
+                        <i class="fa-solid fa-pen-to-square text-xs"></i>
+                    </button>
+                </div>
+                <p id="boardDescDisplay" class="text-xs text-slate-500 line-clamp-1">Silakan masukkan password untuk mengakses kelas.</p>
+            </div>
+        </div>
+
+        <!-- Grade Selector Tabs -->
+        <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 overflow-x-auto w-full sm:w-auto justify-center">
+            <button onclick="attemptSwitchGrade('7')" id="gradeTab7" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-indigo-600 shadow-xs">Kelas 7</button>
+            <button onclick="attemptSwitchGrade('8')" id="gradeTab8" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 hover:text-indigo-600">Kelas 8</button>
+            <button onclick="attemptSwitchGrade('9')" id="gradeTab9" class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 hover:text-indigo-600">Kelas 9</button>
+        </div>
+        
+        <!-- Controls & Actions -->
+        <div class="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
+            <button onclick="openRankingModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1.5 border border-amber-200">
+                <i class="fa-solid fa-trophy"></i>
+                <span class="hidden sm:inline">Ranking Waktu</span>
+            </button>
+            <button onclick="openAddColumnModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus text-indigo-600"></i>
+                <span class="hidden sm:inline">Tambah Kolom</span>
+            </button>
+            <button onclick="openShareModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span class="hidden sm:inline" id="shareBtnText">Bagikan</span>
+            </button>
+            <button onclick="openSettingsModal()" class="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition" title="Pengaturan Papan">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Board Area -->
+    <main class="flex-1 overflow-x-auto p-4 lg:p-6 custom-scrollbar flex items-start space-x-5 select-none" id="boardContainer">
+        <!-- Columns will be dynamically injected here -->
+    </main>
+
+    <!-- Password Lock Modal -->
+    <div id="passwordModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-slate-100 transform transition-all text-center">
+            <div class="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex flex-col items-center justify-center">
+                <div class="w-16 h-16 bg-white/20 text-white rounded-2xl flex items-center justify-center text-3xl shadow-inner mb-3 backdrop-blur-sm border border-white/30">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="font-black text-white text-lg tracking-wide">Akses Kelas Terkunci</h3>
+            </div>
+            <div class="p-6 space-y-4 bg-slate-50">
+                <p class="text-sm text-slate-600 font-medium">Masukkan password untuk masuk ke <strong id="lockGradeText" class="text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">Kelas X</strong></p>
+                <input type="password" id="gradePasswordInput" onkeypress="if(event.key === 'Enter') submitPassword()" placeholder="Masukkan Password..." class="w-full px-4 py-3.5 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none text-center text-xl font-black tracking-widest transition shadow-sm text-slate-700">
+            </div>
+            <div class="bg-white px-6 py-5 border-t border-slate-100 flex items-center justify-center space-x-3">
+                <button onclick="submitPassword()" class="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md transition flex items-center justify-center gap-2">
+                    Buka Papan Tugas <i class="fa-solid fa-unlock-keyhole"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ranking Modal Popup -->
+    <div id="rankingModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-trophy text-sm"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-800 text-base">Leaderboard Ketepatan Waktu</h3>
+                </div>
+                <button onclick="closeRankingModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-500">Daftar siswa yang mengumpulkan tugas paling awal (tercepat) di kelas ini:</p>
+                
+                <div id="rankingListContainer" class="space-y-2.5 max-h-[50vh] overflow-y-auto custom-scrollbar pr-1">
+                    <!-- Dynamic ranking items injected here -->
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex items-center justify-end">
+                <button onclick="closeRankingModal()" class="px-4 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold transition">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal Popup -->
+    <div id="shareModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="shareModalTitle" class="font-bold text-slate-800 text-base">Bagikan Link Papan Tugas</h3>
+                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <p class="text-xs text-slate-600">Siswa dapat langsung membuka link interaktif di bawah ini untuk mengirim tugas:</p>
+                
+                <div class="space-y-1">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Link Khusus Kelas:</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="shareLinkInput" readonly class="w-full px-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 text-xs font-mono select-all focus:outline-none">
+                        <button onclick="copyShareLink()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-2.5 rounded-xl text-xs font-semibold shadow-sm transition flex-shrink-0">
+                            <i class="fa-solid fa-copy mr-1"></i> Salin
+                        </button>
+                    </div>
+                </div>
+
+                <div class="pt-2 flex justify-end">
+                    <a id="directOpenLink" href="#" target="_blank" class="w-full text-center py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">
+                        <i class="fa-solid fa-external-link mr-1"></i> Buka Link di Tab Baru
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Post Modal -->
+    <div id="postModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 transform transition-all">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="postModalTitle" class="font-bold text-slate-800 text-base">Tambah Tugas Baru</h3>
+                <button onclick="closePostModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto custom-scrollbar">
+                <input type="hidden" id="modalColumnId">
+                <input type="hidden" id="modalPostId">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Nama Siswa / Pengirim</label>
+                    <input type="text" id="postAuthor" placeholder="cth: Budi Santoso (Absen 12)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Judul Tugas / Catatan Singkat</label>
+                    <input type="text" id="postTitle" placeholder="cth: My Daily Routine Speaking" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Jenis Konten</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="switchContentType('text')" id="typeBtnText" class="py-2 px-2 rounded-xl border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition">
+                            <i class="fa-solid fa-pen-nib text-sm"></i>
+                            <span>Tulisan</span>
+                        </button>
+                        <button type="button" onclick="switchContentType('audio')" id="typeBtnAudio" class="py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50">
+                            <i class="fa-solid fa-microphone text-sm"></i>
+                            <span>Rekam</span>
+                        </button>
+                        <button type="button" onclick="switchContentType('file')" id="typeBtnFile" class="py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50">
+                            <i class="fa-solid fa-cloud-arrow-up text-sm"></i>
+                            <span>Upload File</span>
+                        </button>
+                        <button type="button" onclick="switchContentType('link')" id="typeBtnLink" class="py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50">
+                            <i class="fa-solid fa-link text-sm"></i>
+                            <span>Link URL</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content Input Types -->
+                <div id="contentSectionText">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Isi Tulisan / Jawaban</label>
+                    <textarea id="postContentText" rows="4" placeholder="Tulis esai singkat, jawaban listening, atau refleksi di sini..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition"></textarea>
+                </div>
+
+                <div id="contentSectionAudio" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Rekaman Suara (Speaking Assignment)</label>
+                    <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center space-y-3">
+                        <div id="recorderIdle" class="space-y-3">
+                            <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg shadow-inner">
+                                <i class="fa-solid fa-microphone"></i>
+                            </div>
+                            <p class="text-xs text-slate-500">Klik tombol di bawah untuk mulai merekam suara langsung dari browser Anda.</p>
+                            <button type="button" onclick="startRecording()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md transition">
+                                <i class="fa-solid fa-circle-dot mr-1 text-red-400"></i> Mulai Rekam
+                            </button>
+                        </div>
+                        <div id="recorderActive" class="hidden space-y-3">
+                            <div class="flex items-center justify-center space-x-2">
+                                <span class="w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                                <span id="timerDisplay" class="font-mono font-bold text-red-600 text-sm">00:00</span>
+                            </div>
+                            <p class="text-xs text-slate-600 font-medium">Sedang merekam suara Anda...</p>
+                            <button type="button" onclick="stopRecording()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md transition">
+                                <i class="fa-solid fa-square mr-1"></i> Selesai & Simpan Rekaman
+                            </button>
+                        </div>
+                        <div id="recorderResult" class="hidden space-y-2">
+                            <div class="flex items-center justify-center space-x-3 bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm">
+                                <audio id="audioPlayback" controls class="h-9 w-full max-w-xs"></audio>
+                                <button type="button" onclick="resetRecording()" class="text-slate-400 hover:text-red-500 text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-check-circle mr-1"></i> Rekaman siap dilampirkan!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="contentSectionFile" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Upload File / Dokumen (Foto, PDF, Word, Audio)</label>
+                    <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-5 text-center space-y-3">
+                        <input type="file" id="postFileUpload" class="hidden" accept="image/*,audio/*,application/pdf,.doc,.docx" onchange="handleFileSelected(event)">
+                        
+                        <div id="fileUploadIdle" class="space-y-2">
+                            <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto text-lg shadow-inner">
+                                <i class="fa-solid fa-file-arrow-up"></i>
+                            </div>
+                            <p class="text-xs text-slate-600">Pilih file tugas dari HP atau Laptop Anda (Maksimal 15MB).</p>
+                            <button type="button" onclick="document.getElementById('postFileUpload').click()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-md transition">
+                                <i class="fa-solid fa-folder-open mr-1"></i> Pilih File
+                            </button>
+                        </div>
+
+                        <div id="fileUploadResult" class="hidden space-y-2">
+                            <div class="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                <div class="flex items-center space-x-2.5 truncate">
+                                    <i id="selectedFileIcon" class="fa-solid fa-file-lines text-indigo-600 text-lg"></i>
+                                    <div class="text-left truncate">
+                                        <p id="selectedFileName" class="text-xs font-bold text-slate-800 truncate">nama_file.pdf</p>
+                                        <p id="selectedFileSize" class="text-[10px] text-slate-400">0 KB</p>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="resetUploadedFile()" class="text-slate-400 hover:text-red-500 text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                            </div>
+                            <p class="text-xs text-emerald-600 font-medium"><i class="fa-solid fa-check-circle mr-1"></i> File berhasil dimuat dan siap dikirim!</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="contentSectionLink" class="hidden">
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">URL / Link Eksternal (Audio, Drive, YouTube, dll)</label>
+                    <input type="url" id="postContentLink" placeholder="https://soundcloud.com/... atau link file tugas" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Pilih Warna Catatan</label>
+                    <div class="flex items-center space-x-3 pt-1">
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-amber-50 border-amber-200 text-amber-900" class="peer sr-only" checked><span class="block w-7 h-7 rounded-full bg-amber-200 border-2 border-white ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-emerald-50 border-emerald-200 text-emerald-900" class="peer sr-only"><span class="block w-7 h-7 rounded-full bg-emerald-200 border-2 border-white ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-sky-50 border-sky-200 text-sky-900" class="peer sr-only"><span class="block w-7 h-7 rounded-full bg-sky-200 border-2 border-white ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-purple-50 border-purple-200 text-purple-900" class="peer sr-only"><span class="block w-7 h-7 rounded-full bg-purple-200 border-2 border-white ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-rose-50 border-rose-200 text-rose-900" class="peer sr-only"><span class="block w-7 h-7 rounded-full bg-rose-200 border-2 border-white ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                        <label class="cursor-pointer"><input type="radio" name="postColor" value="bg-white border-slate-200 text-slate-900" class="peer sr-only"><span class="block w-7 h-7 rounded-full bg-white border-2 border-slate-300 ring-2 ring-transparent peer-checked:ring-indigo-600 transition"></span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closePostModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition">Batal</button>
+                <button onclick="savePost()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md transition">Kirim Tugas</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add / Edit Column Modal -->
+    <div id="columnModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 id="columnModalTitle" class="font-bold text-slate-800 text-base">Tambah Kolom Baru</h3>
+                <button onclick="closeColumnModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <input type="hidden" id="modalColumnIndex">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Judul Kolom / Kategori Tugas</label>
+                    <input type="text" id="columnTitleInput" placeholder="cth: Tugas Speaking - Chapter 3" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Deskripsi Singkat (Opsional)</label>
+                    <input type="text" id="columnDescInput" placeholder="cth: Rekam suara percakapan minimal 1 menit." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeColumnModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition">Batal</button>
+                <button onclick="saveColumn()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md transition">Simpan Kolom</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Board Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
+            <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 class="font-bold text-slate-800 text-base">Pengaturan Papan & Kelas</h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Nama Papan / Kelas</label>
+                    <input type="text" id="settingsBoardTitle" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">Deskripsi Papan</label>
+                    <textarea id="settingsBoardDesc" rows="2" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm transition"></textarea>
+                </div>
+                <div class="pt-2 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-700">Reset Data Kelas Ini</h4>
+                        <p class="text-[11px] text-slate-400">Kembalikan ke papan contoh awal.</p>
+                    </div>
+                    <button onclick="resetBoardData()" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-xl text-xs font-medium transition">Reset Data</button>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3.5 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button onclick="closeSettingsModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition">Batal</button>
+                <button onclick="saveSettings()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md transition">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMessage" class="text-xs font-medium">Berhasil menyimpan perubahan!</span>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // PASSWORD CONFIGURATION
+        const gradePasswords = {
+            "7": "AKGS7",
+            "8": "AKGS8",
+            "9": "AKGS9"
+        };
+        
+        // Session unlocked state (true means user successfully entered password)
+        let unlockedSessionGrades = { "7": false, "8": false, "9": false };
+        let pendingGradeToUnlock = null;
+
+        // Default templates with submission timestamps
+        const allBoardsData = {
+            "7": {
+                title: "Kelas 7 - Bahasa Inggris",
+                description: "Kumpulan tugas Speaking, Listening, dan Tulisan Pendek Kelas 7.",
+                columns: [
+                    {
+                        id: "col-7-1",
+                        title: "🎤 Tugas 1: Self Introduction",
+                        description: "Rekam suara perkenalan diri min. 30 detik.",
+                        posts: [
+                            {
+                                id: "post-7-1", author: "Andi Pratama (7A)", title: "My Introduction", type: "audio",
+                                content: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                                color: "bg-amber-50 border-amber-200 text-amber-900", createdAt: "1 hari lalu",
+                                timestamp: Date.now() - 86400000, likes: 4, comments: [{ author: "Ibu Guru", text: "Nice voice Andi!" }]
+                            }
+                        ]
+                    },
+                    {
+                        id: "col-7-2", title: "✍️ Tugas 2: My Family Description", description: "Tulis 1 paragraf tentang keluargamu.", posts: []
+                    }
+                ]
+            },
+            "8": {
+                title: "Kelas 8 - Bahasa Inggris",
+                description: "Kumpulan tugas Speaking, Listening, dan Tulisan Pendek Kelas 8.",
+                columns: [
+                    {
+                        id: "col-8-1", title: "🎤 Tugas 1: Daily Activities", description: "Ceritakan rutinitas harianmu dalam bahasa Inggris.",
+                        posts: [
+                            {
+                                id: "post-8-1", author: "Siti Nurhaliza (8B)", title: "My Daily Routine", type: "audio",
+                                content: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                                color: "bg-emerald-50 border-emerald-200 text-emerald-900", createdAt: "2 hari lalu",
+                                timestamp: Date.now() - 172800000, likes: 6, comments: []
+                            }
+                        ]
+                    },
+                    {
+                        id: "col-8-2", title: "🎧 Tugas 2: Listening Practice", description: "Dengarkan audio dan tulis ringkasannya.", posts: []
+                    }
+                ]
+            },
+            "9": {
+                title: "Kelas 9 - Bahasa Inggris",
+                description: "Kumpulan tugas Speaking, Listening, dan Tulisan Pendek Kelas 9.",
+                columns: [
+                    {
+                        id: "col-9-1", title: "🎤 Tugas 1: Narrative Storytelling", description: "Ceritakan kisah legenda/folktale singkat.",
+                        posts: [
+                            {
+                                id: "post-9-1", author: "Rian Hidayat (9C)", title: "The Legend of Malin Kundang", type: "audio",
+                                content: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+                                color: "bg-purple-50 border-purple-200 text-purple-900", createdAt: "3 hari lalu",
+                                timestamp: Date.now() - 259200000, likes: 9, comments: [{ author: "Pak Guru", text: "Excellent storytelling!" }]
+                            }
+                        ]
+                    },
+                    {
+                        id: "col-9-2", title: "✍️ Tugas 2: Persuasive Essay", description: "Tulis esai singkat tentang pentingnya menjaga lingkungan.", posts: []
+                    }
+                ]
+            }
+        };
+
+        let currentGrade = "7";
+        let boardsStorage;
+        try {
+            const stored = localStorage.getItem('padletku_multi_boards');
+            boardsStorage = stored ? JSON.parse(stored) : allBoardsData;
+        } catch (e) {
+            boardsStorage = allBoardsData;
+        }
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordedAudioDataUrl = null;
+        let recordingTimer = null;
+        let recordingSeconds = 0;
+        let currentContentType = 'text';
+        let uploadedFileObject = null;
+
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const gradeParam = urlParams.get('grade');
+            if (gradeParam && ['7', '8', '9'].includes(gradeParam)) {
+                currentGrade = gradeParam;
+            }
+            
+            // Clean board before unlock
+            document.getElementById('boardContainer').innerHTML = '';
+            
+            // Initiate password check
+            attemptSwitchGrade(currentGrade);
+        };
+
+        // PASSWORD LOGIC
+        function attemptSwitchGrade(grade) {
+            if (unlockedSessionGrades[grade]) {
+                switchGradeBoard(grade);
+            } else {
+                openPasswordModal(grade);
+            }
+        }
+
+        function openPasswordModal(grade) {
+            pendingGradeToUnlock = grade;
+            document.getElementById('lockGradeText').innerText = "Kelas " + grade;
+            document.getElementById('gradePasswordInput').value = '';
+            document.getElementById('passwordModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('gradePasswordInput').focus(), 100);
+        }
+
+        function submitPassword() {
+            const inputVal = document.getElementById('gradePasswordInput').value;
+            if (inputVal === gradePasswords[pendingGradeToUnlock]) {
+                unlockedSessionGrades[pendingGradeToUnlock] = true;
+                document.getElementById('passwordModal').classList.add('hidden');
+                showToast(`Akses Kelas ${pendingGradeToUnlock} Terbuka!`, "success");
+                switchGradeBoard(pendingGradeToUnlock);
+            } else {
+                showToast("Password salah! Silakan coba lagi.", "error");
+            }
+        }
+
+        function switchGradeBoard(grade) {
+            currentGrade = grade;
+            
+            ['7', '8', '9'].forEach(g => {
+                const btn = document.getElementById(`gradeTab${g}`);
+                if (g === grade) {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-white text-indigo-600 shadow-xs";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-600 hover:text-indigo-600";
+                }
+            });
+
+            renderBoard();
+        }
+
+        function getCurrentBoard() {
+            if (!boardsStorage[currentGrade]) {
+                boardsStorage[currentGrade] = allBoardsData[currentGrade];
+            }
+            return boardsStorage[currentGrade];
+        }
+
+        function saveBoardToStorage() {
+            try {
+                localStorage.setItem('padletku_multi_boards', JSON.stringify(boardsStorage));
+            } catch (e) {
+                showToast("Penyimpanan lokal penuh. Hapus beberapa tugas lama.", "error");
+            }
+        }
+
+        function renderBoard() {
+            try {
+                const board = getCurrentBoard();
+                document.getElementById('boardTitleDisplay').innerText = board.title;
+                document.getElementById('boardDescDisplay').innerText = board.description;
+                
+                const container = document.getElementById('boardContainer');
+                container.innerHTML = '';
+
+                board.columns.forEach((col) => {
+                    const columnEl = document.createElement('div');
+                    columnEl.className = "bg-slate-100/80 border border-slate-200/80 rounded-2xl w-80 flex-shrink-0 flex flex-col max-h-[calc(100vh-140px)] shadow-xs";
+                    
+                    let postsHtml = '';
+                    if (col.posts && Array.isArray(col.posts)) {
+                        col.posts.forEach((post) => {
+                            postsHtml += renderPostCard(post, col.id);
+                        });
+                    }
+
+                    columnEl.innerHTML = `
+                        <div class="p-4 border-b border-slate-200/60 flex items-center justify-between bg-white/60 rounded-t-2xl">
+                            <div class="truncate mr-2">
+                                <h2 class="font-bold text-sm text-slate-800 truncate">${escapeHtml(col.title)}</h2>
+                                <p class="text-[11px] text-slate-500 truncate">${escapeHtml(col.description || '')}</p>
+                            </div>
+                            <div class="flex items-center space-x-1 flex-shrink-0">
+                                <button onclick="openEditColumnModal('${col.id}')" class="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg transition" title="Edit Kolom">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteColumn('${col.id}')" class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg transition" title="Hapus Kolom">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 flex-1 overflow-y-auto custom-scrollbar space-y-3">
+                            ${postsHtml}
+                            <button onclick="openAddPostModal('${col.id}')" class="w-full py-2.5 px-3 rounded-xl border-2 border-dashed border-slate-300/80 hover:border-indigo-400 hover:bg-indigo-50/50 text-slate-500 hover:text-indigo-600 text-xs font-semibold transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-plus"></i>
+                                <span>Tambah Tugas</span>
+                            </button>
+                        </div>
+                    `;
+                    container.appendChild(columnEl);
+                });
+            } catch (err) {
+                console.error("Render board error:", err);
+            }
+        }
+
+        function renderPostCard(post, columnId) {
+            let contentDisplay = '';
+            const mediaUrl = post.content || '';
+
+            if (post.type === 'text') {
+                contentDisplay = `<p class="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">${escapeHtml(post.content)}</p>`;
+            } else if (post.type === 'audio') {
+                contentDisplay = `
+                    <div class="bg-white/80 p-2.5 rounded-xl border border-slate-200/60 shadow-xs space-y-1.5">
+                        <div class="flex items-center space-x-2 text-xs font-semibold text-indigo-700">
+                            <i class="fa-solid fa-microphone-lines animate-pulse"></i>
+                            <span>Rekaman Suara Siswa</span>
+                        </div>
+                        <audio controls src="${mediaUrl}" class="w-full h-8"></audio>
+                    </div>
+                `;
+            } else if (post.type === 'file') {
+                if (post.fileType && post.fileType.startsWith('image/')) {
+                    contentDisplay = `
+                        <div class="space-y-2">
+                            <a href="${mediaUrl}" target="_blank" class="block rounded-xl overflow-hidden border border-slate-200/80 shadow-xs max-h-48 bg-slate-900 flex items-center justify-center">
+                                <img src="${mediaUrl}" alt="${escapeHtml(post.fileName)}" class="object-cover w-full h-auto max-h-48 hover:opacity-95 transition">
+                            </a>
+                            <div class="flex items-center justify-between text-[11px] text-slate-600 bg-white/80 px-2.5 py-1.5 rounded-lg border border-slate-200/60">
+                                <span class="truncate font-medium"><i class="fa-solid fa-image text-indigo-600 mr-1"></i> ${escapeHtml(post.fileName)}</span>
+                                <a href="${mediaUrl}" download="${post.fileName}" class="text-indigo-600 hover:underline font-semibold ml-2"><i class="fa-solid fa-download"></i></a>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    contentDisplay = `
+                        <div class="bg-white/80 p-3 rounded-xl border border-slate-200/60 shadow-xs flex items-center justify-between">
+                            <div class="flex items-center space-x-2.5 truncate">
+                                <div class="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-file-arrow-down text-sm"></i>
+                                </div>
+                                <div class="truncate">
+                                    <p class="text-xs font-bold text-slate-800 truncate">${escapeHtml(post.fileName || 'File Tugas')}</p>
+                                    <p class="text-[10px] text-slate-400">Lampiran Dokumen</p>
+                                </div>
+                            </div>
+                            <a href="${mediaUrl}" download="${post.fileName || 'tugas'}" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center space-x-1 flex-shrink-0 ml-2">
+                                <i class="fa-solid fa-download"></i>
+                                <span>Unduh</span>
+                            </a>
+                        </div>
+                    `;
+                }
+            } else if (post.type === 'link') {
+                contentDisplay = `
+                    <a href="${escapeHtml(post.content)}" target="_blank" class="flex items-center space-x-2.5 bg-white/80 p-2.5 rounded-xl border border-slate-200/60 text-indigo-600 hover:underline text-xs font-medium shadow-xs">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+                        <span class="truncate">${escapeHtml(post.content)}</span>
+                    </a>
+                `;
+            }
+
+            let commentsHtml = '';
+            if (post.comments && post.comments.length > 0) {
+                post.comments.forEach(c => {
+                    commentsHtml += `
+                        <div class="bg-white/60 p-2 rounded-lg border border-slate-200/40 text-[11px] space-y-0.5">
+                            <span class="font-bold text-indigo-800">${escapeHtml(c.author)}:</span>
+                            <p class="text-slate-700">${escapeHtml(c.text)}</p>
+                        </div>
+                    `;
+                });
+            }
+
+            return `
+                <div class="${post.color} border rounded-2xl p-4 shadow-xs space-y-3 relative group transition hover:shadow-md">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-semibold bg-white/70 text-slate-700 border border-slate-200/50 mb-1">${escapeHtml(post.author)}</span>
+                            <h3 class="font-bold text-sm tracking-tight">${escapeHtml(post.title)}</h3>
+                        </div>
+                        <button onclick="deletePost('${columnId}', '${post.id}')" class="text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition p-1" title="Hapus Tugas">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+
+                    ${contentDisplay}
+
+                    <div class="space-y-1.5 pt-1">
+                        ${commentsHtml}
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-200/40 text-[11px] text-slate-500">
+                        <span>${post.createdAt}</span>
+                        <div class="flex items-center space-x-3">
+                            <button onclick="likePost('${columnId}', '${post.id}')" class="flex items-center space-x-1 hover:text-rose-600 transition">
+                                <i class="fa-solid fa-heart text-rose-500"></i>
+                                <span class="font-semibold">${post.likes || 0}</span>
+                            </button>
+                            <button onclick="promptAddComment('${columnId}', '${post.id}')" class="flex items-center space-x-1 hover:text-indigo-600 transition">
+                                <i class="fa-solid fa-comment"></i>
+                                <span>Tanggapi</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Leaderboard / Ranking Modal Functions
+        function openRankingModal() {
+            const board = getCurrentBoard();
+            let allPosts = [];
+            
+            board.columns.forEach(col => {
+                if (col.posts && Array.isArray(col.posts)) {
+                    col.posts.forEach(p => {
+                        allPosts.push({
+                            ...p, columnTitle: col.title, timestamp: p.timestamp || Date.now()
+                        });
+                    });
+                }
+            });
+
+            allPosts.sort((a, b) => a.timestamp - b.timestamp);
+
+            const container = document.getElementById('rankingListContainer');
+            container.innerHTML = '';
+
+            if (allPosts.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Belum ada tugas yang dikumpulkan di kelas ini.</p>`;
+            } else {
+                allPosts.forEach((post, index) => {
+                    let rankBadge = '';
+                    if (index === 0) {
+                        rankBadge = `<div class="w-7 h-7 rounded-full bg-amber-400 text-white font-bold flex items-center justify-center text-xs shadow-sm"><i class="fa-solid fa-trophy"></i></div>`;
+                    } else if (index === 1) {
+                        rankBadge = `<div class="w-7 h-7 rounded-full bg-slate-300 text-slate-700 font-bold flex items-center justify-center text-xs">2</div>`;
+                    } else if (index === 2) {
+                        rankBadge = `<div class="w-7 h-7 rounded-full bg-amber-700 text-white font-bold flex items-center justify-center text-xs">3</div>`;
+                    } else {
+                        rankBadge = `<div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-xs">${index + 1}</div>`;
+                    }
+
+                    const dateObj = new Date(post.timestamp);
+                    const timeString = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) + ' ' + dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+
+                    const itemEl = document.createElement('div');
+                    itemEl.className = "flex items-center justify-between bg-slate-50 border border-slate-200/80 p-3 rounded-xl hover:bg-slate-100/70 transition";
+                    itemEl.innerHTML = `
+                        <div class="flex items-center space-x-3 truncate mr-3">
+                            ${rankBadge}
+                            <div class="truncate">
+                                <h4 class="font-bold text-xs text-slate-900 truncate">${escapeHtml(post.author)}</h4>
+                                <p class="text-[11px] text-slate-500 truncate">${escapeHtml(post.title)} • <span class="text-indigo-600">${escapeHtml(post.columnTitle)}</span></p>
+                            </div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-[10px] font-mono bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-md font-medium"><i class="fa-regular fa-clock mr-1"></i>${timeString}</span>
+                        </div>
+                    `;
+                    container.appendChild(itemEl);
+                });
+            }
+
+            document.getElementById('rankingModal').classList.remove('hidden');
+        }
+
+        function closeRankingModal() {
+            document.getElementById('rankingModal').classList.add('hidden');
+        }
+
+        // Modal Controls for Post
+        function openAddPostModal(columnId) {
+            document.getElementById('modalColumnId').value = columnId;
+            document.getElementById('modalPostId').value = '';
+            document.getElementById('postModalTitle').innerText = 'Tambah Tugas Baru';
+            document.getElementById('postAuthor').value = '';
+            document.getElementById('postTitle').value = '';
+            document.getElementById('postContentText').value = '';
+            document.getElementById('postContentLink').value = '';
+            switchContentType('text');
+            resetRecording();
+            resetUploadedFile();
+            document.getElementById('postModal').classList.remove('hidden');
+        }
+
+        function closePostModal() {
+            document.getElementById('postModal').classList.add('hidden');
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                try { mediaRecorder.stop(); } catch(e) {}
+            }
+            clearInterval(recordingTimer);
+        }
+
+        function switchContentType(type) {
+            currentContentType = type;
+            document.getElementById('contentSectionText').classList.add('hidden');
+            document.getElementById('contentSectionAudio').classList.add('hidden');
+            document.getElementById('contentSectionFile').classList.add('hidden');
+            document.getElementById('contentSectionLink').classList.add('hidden');
+
+            document.getElementById('typeBtnText').className = "py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50";
+            document.getElementById('typeBtnAudio').className = "py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50";
+            document.getElementById('typeBtnFile').className = "py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50";
+            document.getElementById('typeBtnLink').className = "py-2 px-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition hover:bg-slate-50";
+
+            if (type === 'text') {
+                document.getElementById('contentSectionText').classList.remove('hidden');
+                document.getElementById('typeBtnText').className = "py-2 px-2 rounded-xl border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition";
+            } else if (type === 'audio') {
+                document.getElementById('contentSectionAudio').classList.remove('hidden');
+                document.getElementById('typeBtnAudio').className = "py-2 px-2 rounded-xl border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition";
+            } else if (type === 'file') {
+                document.getElementById('contentSectionFile').classList.remove('hidden');
+                document.getElementById('typeBtnFile').className = "py-2 px-2 rounded-xl border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition";
+            } else if (type === 'link') {
+                document.getElementById('contentSectionLink').classList.remove('hidden');
+                document.getElementById('typeBtnLink').className = "py-2 px-2 rounded-xl border border-indigo-600 bg-indigo-50 text-indigo-700 text-xs font-medium flex flex-col items-center justify-center space-y-1 transition";
+            }
+        }
+
+        // Robust File Selected Handler
+        function handleFileSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.size > 15 * 1024 * 1024) {
+                showToast("Ukuran file maksimal 15MB", "error");
+                resetUploadedFile();
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedFileObject = {
+                    dataUrl: e.target.result,
+                    name: file.name,
+                    size: formatBytes(file.size),
+                    type: file.type
+                };
+
+                document.getElementById('selectedFileName').innerText = file.name;
+                document.getElementById('selectedFileSize').innerText = uploadedFileObject.size;
+                
+                const iconEl = document.getElementById('selectedFileIcon');
+                if (file.type.startsWith('image/')) {
+                    iconEl.className = "fa-solid fa-file-image text-emerald-600 text-lg";
+                } else if (file.type.startsWith('audio/')) {
+                    iconEl.className = "fa-solid fa-file-audio text-amber-600 text-lg";
+                } else if (file.type.includes('pdf')) {
+                    iconEl.className = "fa-solid fa-file-pdf text-rose-600 text-lg";
+                } else {
+                    iconEl.className = "fa-solid fa-file-lines text-indigo-600 text-lg";
+                }
+
+                document.getElementById('fileUploadIdle').classList.add('hidden');
+                document.getElementById('fileUploadResult').classList.remove('hidden');
+                showToast("File berhasil dimuat!", "success");
+            };
+            reader.onerror = function() {
+                showToast("Gagal membaca file. Coba file lain.", "error");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetUploadedFile() {
+            uploadedFileObject = null;
+            document.getElementById('postFileUpload').value = '';
+            document.getElementById('fileUploadResult').classList.add('hidden');
+            document.getElementById('fileUploadIdle').classList.remove('hidden');
+        }
+
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Voice Recorder Functions
+        async function startRecording() {
+            audioChunks = [];
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                let options = { mimeType: 'audio/webm' };
+                if (!MediaRecorder.isTypeSupported('audio/webm')) {
+                    if (MediaRecorder.isTypeSupported('audio/mp4')) {
+                        options = { mimeType: 'audio/mp4' };
+                    } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+                        options = { mimeType: 'audio/ogg' };
+                    } else {
+                        options = {};
+                    }
+                }
+
+                mediaRecorder = new MediaRecorder(stream, options);
+                
+                mediaRecorder.ondataavailable = event => {
+                    if (event.data && event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        recordedAudioDataUrl = e.target.result;
+                        document.getElementById('audioPlayback').src = recordedAudioDataUrl;
+                        document.getElementById('recorderActive').classList.add('hidden');
+                        document.getElementById('recorderResult').classList.remove('hidden');
+                        showToast("Rekaman suara berhasil disimpan!", "success");
+                    };
+                    reader.onerror = function() {
+                        showToast("Gagal memproses rekaman suara.", "error");
+                    };
+                    reader.readAsDataURL(audioBlob);
+
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                mediaRecorder.start(250);
+                document.getElementById('recorderIdle').classList.add('hidden');
+                document.getElementById('recorderActive').classList.remove('hidden');
+                
+                recordingSeconds = 0;
+                document.getElementById('timerDisplay').innerText = "00:00";
+                recordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    let mins = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    let secs = (recordingSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').innerText = `${mins}:${secs}`;
+                }, 1000);
+
+            } catch (err) {
+                console.error("Microphone error:", err);
+                showToast("Gagal mengakses mikrofon. Pastikan izin mikrofon diizinkan di browser HP Anda.", "error");
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            clearInterval(recordingTimer);
+        }
+
+        function resetRecording() {
+            recordedAudioDataUrl = null;
+            document.getElementById('recorderResult').classList.add('hidden');
+            document.getElementById('recorderActive').classList.add('hidden');
+            document.getElementById('recorderIdle').classList.remove('hidden');
+            clearInterval(recordingTimer);
+        }
+
+        // Save Post Action
+        function savePost() {
+            try {
+                const columnId = document.getElementById('modalColumnId').value;
+                const author = document.getElementById('postAuthor').value.trim() || "Siswa Anonim";
+                const title = document.getElementById('postTitle').value.trim() || "Tugas Siswa";
+                const colorSelected = document.querySelector('input[name="postColor"]:checked').value;
+                
+                let content = "";
+                let fileName = "";
+                let fileType = "";
+                const postId = 'post-' + Date.now();
+
+                if (currentContentType === 'text') {
+                    content = document.getElementById('postContentText').value.trim();
+                    if (!content) {
+                        showToast("Isi tulisan tidak boleh kosong!", "error");
+                        return;
+                    }
+                } else if (currentContentType === 'audio') {
+                    if (!recordedAudioDataUrl) {
+                        showToast("Rekam suara Anda terlebih dahulu sebelum mengirim!", "error");
+                        return;
+                    }
+                    content = recordedAudioDataUrl;
+                } else if (currentContentType === 'file') {
+                    if (!uploadedFileObject) {
+                        showToast("Pilih file tugas terlebih dahulu!", "error");
+                        return;
+                    }
+                    content = uploadedFileObject.dataUrl;
+                    fileName = uploadedFileObject.name;
+                    fileType = uploadedFileObject.type;
+                } else if (currentContentType === 'link') {
+                    content = document.getElementById('postContentLink').value.trim();
+                    if (!content) {
+                        showToast("URL link tidak boleh kosong!", "error");
+                        return;
+                    }
+                }
+
+                const board = getCurrentBoard();
+                const col = board.columns.find(c => c.id === columnId);
+                if (col) {
+                    if (!col.posts) col.posts = [];
+                    const newPost = {
+                        id: postId, author: author, title: title, type: currentContentType, content: content,
+                        fileName: fileName, fileType: fileType, color: colorSelected, createdAt: "Baru saja",
+                        timestamp: Date.now(), likes: 0, comments: []
+                    };
+                    col.posts.unshift(newPost);
+                    saveBoardToStorage();
+                    renderBoard();
+                    closePostModal();
+                    showToast("Tugas berhasil dikirim ke papan!", "success");
+                } else {
+                    showToast("Kolom tidak ditemukan!", "error");
+                }
+            } catch (err) {
+                console.error("Save post error:", err);
+                showToast("Terjadi kendala saat mengirim tugas. Coba lagi.", "error");
+            }
+        }
+
+        // Delete Post
+        function deletePost(columnId, postId) {
+            if (confirm("Hapus tugas ini dari papan?")) {
+                const board = getCurrentBoard();
+                const col = board.columns.find(c => c.id === columnId);
+                if (col) {
+                    col.posts = col.posts.filter(p => p.id !== postId);
+                    saveBoardToStorage();
+                    renderBoard();
+                    showToast("Tugas berhasil dihapus.", "success");
+                }
+            }
+        }
+
+        // Like Post
+        function likePost(columnId, postId) {
+            const board = getCurrentBoard();
+            const col = board.columns.find(c => c.id === columnId);
+            if (col) {
+                const post = col.posts.find(p => p.id === postId);
+                if (post) {
+                    post.likes = (post.likes || 0) + 1;
+                    saveBoardToStorage();
+                    renderBoard();
+                }
+            }
+        }
+
+        // Add Comment
+        function promptAddComment(columnId, postId) {
+            const commentText = prompt("Tulis tanggapan / feedback guru atau teman:");
+            if (commentText && commentText.trim() !== "") {
+                const board = getCurrentBoard();
+                const col = board.columns.find(c => c.id === columnId);
+                if (col) {
+                    const post = col.posts.find(p => p.id === postId);
+                    if (post) {
+                        if (!post.comments) post.comments = [];
+                        post.comments.push({ author: "Guru / Penilai", text: commentText.trim() });
+                        saveBoardToStorage();
+                        renderBoard();
+                        showToast("Tanggapan berhasil ditambahkan.", "success");
+                    }
+                }
+            }
+        }
+
+        // Column Modals
+        function openAddColumnModal() {
+            document.getElementById('modalColumnIndex').value = '';
+            document.getElementById('columnModalTitle').innerText = 'Tambah Kolom Baru';
+            document.getElementById('columnTitleInput').value = '';
+            document.getElementById('columnDescInput').value = '';
+            document.getElementById('columnModal').classList.remove('hidden');
+        }
+
+        function openEditColumnModal(columnId) {
+            const board = getCurrentBoard();
+            const col = board.columns.find(c => c.id === columnId);
+            if (col) {
+                document.getElementById('modalColumnIndex').value = columnId;
+                document.getElementById('columnModalTitle').innerText = 'Edit Kolom';
+                document.getElementById('columnTitleInput').value = col.title;
+                document.getElementById('columnDescInput').value = col.description || '';
+                document.getElementById('columnModal').classList.remove('hidden');
+            }
+        }
+
+        function closeColumnModal() {
+            document.getElementById('columnModal').classList.add('hidden');
+        }
+
+        function saveColumn() {
+            const columnId = document.getElementById('modalColumnIndex').value;
+            const title = document.getElementById('columnTitleInput').value.trim();
+            const desc = document.getElementById('columnDescInput').value.trim();
+
+            if (!title) {
+                showToast("Judul kolom tidak boleh kosong!", "error");
+                return;
+            }
+
+            const board = getCurrentBoard();
+            if (columnId) {
+                const col = board.columns.find(c => c.id === columnId);
+                if (col) {
+                    col.title = title;
+                    col.description = desc;
+                }
+            } else {
+                const newCol = {
+                    id: 'col-' + Date.now(), title: title, description: desc, posts: []
+                };
+                board.columns.push(newCol);
+            }
+
+            saveBoardToStorage();
+            renderBoard();
+            closeColumnModal();
+            showToast("Kolom berhasil disimpan.", "success");
+        }
+
+        function deleteColumn(columnId) {
+            if (confirm("Hapus kolom ini beserta seluruh tugas di dalamnya?")) {
+                const board = getCurrentBoard();
+                board.columns = board.columns.filter(c => c.id !== columnId);
+                saveBoardToStorage();
+                renderBoard();
+                showToast("Kolom berhasil dihapus.", "success");
+            }
+        }
+
+        // Settings Modal
+        function openEditBoardModal() { openSettingsModal(); }
+        function openSettingsModal() {
+            const board = getCurrentBoard();
+            document.getElementById('settingsBoardTitle').value = board.title;
+            document.getElementById('settingsBoardDesc').value = board.description;
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+        function saveSettings() {
+            const title = document.getElementById('settingsBoardTitle').value.trim();
+            const desc = document.getElementById('settingsBoardDesc').value.trim();
+            const board = getCurrentBoard();
+            if (title) board.title = title;
+            board.description = desc;
+            saveBoardToStorage();
+            renderBoard();
+            closeSettingsModal();
+            showToast("Pengaturan papan diperbarui.", "success");
+        }
+
+        function resetBoardData() {
+            if (confirm("Reset papan kelas ini kembali ke data contoh awal?")) {
+                boardsStorage[currentGrade] = JSON.parse(JSON.stringify(allBoardsData[currentGrade]));
+                saveBoardToStorage();
+                renderBoard();
+                closeSettingsModal();
+                showToast("Papan berhasil direset.", "success");
+            }
+        }
+
+        // Share Modal Control
+        function openShareModal() {
+            let baseUrl = window.location.origin + window.location.pathname;
+            if (baseUrl.startsWith('file://')) {
+                baseUrl = window.location.href.split('?')[0];
+            }
+            const classUrl = `${baseUrl}?grade=${currentGrade}`;
+            
+            document.getElementById('shareLinkInput').value = classUrl;
+            document.getElementById('directOpenLink').href = classUrl;
+            document.getElementById('shareModal').classList.remove('hidden');
+        }
+
+        function closeShareModal() {
+            document.getElementById('shareModal').classList.add('hidden');
+        }
+
+        function copyShareLink() {
+            const linkInput = document.getElementById('shareLinkInput');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            showToast(`Link Kelas ${currentGrade} berhasil disalin ke clipboard!`, "success");
+        }
+
+        // Utility: HTML escape
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, '&#039;');
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMessage.innerText = message;
+            if (type === 'error') {
+                toastIcon.className = "fa-solid fa-triangle-exclamation text-rose-400";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400";
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
